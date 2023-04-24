@@ -151,7 +151,7 @@ public class Main {
 		JButton btnUpdateCustomer = new JButton("Update");
 		btnUpdateCustomer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				UpdateCustomer updateCustomer = new UpdateCustomer();
+				AddConnectionForm updateCustomer = new AddConnectionForm();
 				updateCustomer.setVisible(true);
 			}
 		});

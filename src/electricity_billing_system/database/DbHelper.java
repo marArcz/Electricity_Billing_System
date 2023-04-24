@@ -86,6 +86,61 @@ public class DbHelper {
 		return customers;
 	}
 	
+	public Customer FindCustomer(int id){
+		Customer customer = new Customer();
+		
+		PreparedStatement stmt;
+		try {
+			stmt = conn.prepareStatement("SELECT * FROM customers WHERE id = ?");
+			stmt.setInt(1, id);
+			ResultSet rs = stmt.executeQuery();
+			
+			if(rs.next()) {
+				customer = new Customer();
+				customer.setId(rs.getInt("id"));
+				customer.setFirstname(rs.getString("firstname"));
+				customer.setLastname(rs.getString("lastname"));
+				customer.setPhone(rs.getString("phone"));
+				customer.setAddress(rs.getString("address"));
+			}
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return customer;
+	}
+	
+	public ArrayList<Customer> getCustomersWithNoActiveConnection(){
+		ArrayList<Customer> customers = new ArrayList<>();
+		
+		Statement st;
+		try {
+			st = conn.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM customers WHERE ID NOT IN (SELECT user_id FROM connections WHERE status = 1)");
+			Customer customer;
+			while(rs.next()) {
+				customer = new Customer();
+				customer.setId(rs.getInt("id"));
+				customer.setFirstname(rs.getString("firstname"));
+				customer.setLastname(rs.getString("lastname"));
+				customer.setPhone(rs.getString("phone"));
+				customer.setAddress(rs.getString("address"));
+				
+				customers.add(customer);
+			}
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return customers;
+	}
+	
 	public boolean AddCustomer(Customer customer) {
 		
 		PreparedStatement stmt;
@@ -131,6 +186,107 @@ public class DbHelper {
 		return false;
 	}
 	
+	public boolean DeleteCustomer(int customerId) {
+		
+		PreparedStatement stmt;
+		
+		try {
+			stmt = conn.prepareStatement("DELETE FROM customers WHERE id=?");
+			stmt.setInt(1, customerId);
+			
+			if(stmt.executeUpdate() >= 0) {
+				return true;
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
 	
+	public ArrayList<ConnectionModel> getConnections(){
+		ArrayList<ConnectionModel> connections = new ArrayList<>();
+		
+		Statement st;
+		try {
+			st = conn.createStatement();
+			ResultSet rs = st.executeQuery("SELECT * FROM connections ORDER BY status ASC");
+			ConnectionModel connection;
+			while(rs.next()) {
+				connection = new ConnectionModel();
+				connection.setId(rs.getInt("id"));
+				connection.setId(rs.getInt("meter_number"));
+				connection.setCustomerId(rs.getInt("customer_id"));
+				connection.setStatus(rs.getInt("status"));
+				connection.setCustomer(FindCustomer(rs.getInt("customer_id")));
+				connections.add(connection);
+			}
+			
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return connections;
+	}
+	
+	public boolean AddConnection(int meterNumber,int customerId) {
+		PreparedStatement stmt;
+		
+		try {
+			stmt = conn.prepareStatement("INSERT INTO connections(meter_number,customer_id) VALUES(?,?)");
+			stmt.setInt(1, meterNumber);
+			stmt.setInt(2, customerId);
+			
+			if(stmt.executeUpdate() > 0) {
+				return true;
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean UpdateConnection(ConnectionModel connectionModel) {
+		PreparedStatement stmt;
+		
+		try {
+			stmt = conn.prepareStatement("UPDATE connections SET meter_number=?,customer_id=?,status=?");
+			stmt.setInt(1, connectionModel.getMeterNumber());
+			stmt.setInt(2, connectionModel.getCustomerId());
+			stmt.setInt(3, connectionModel.getStatus());
+			
+			if(stmt.executeUpdate() >= 0) {
+				return true;
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean DeleteConnection(int id) {
+		PreparedStatement stmt;
+		
+		try {
+			stmt = conn.prepareStatement("DELETE FROM connections WHERE id = ?");
+			stmt.setInt(1, id);
+			
+			if(stmt.executeUpdate() >= 0) {
+				return true;
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
 	
 }

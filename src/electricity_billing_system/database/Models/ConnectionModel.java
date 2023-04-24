@@ -5,7 +5,7 @@ import java.sql.Date;
 public class ConnectionModel {
 	private int id;
 	private int customerId;
-	private String meterNumber;
+	private int meterNumber;
 	private String connectionType;
 	private Date connectionDate;
 	private int status;
@@ -24,10 +24,10 @@ public class ConnectionModel {
 	public void setCustomerId(int customerId) {
 		this.customerId = customerId;
 	}
-	public String getMeterNumber() {
+	public int getMeterNumber() {
 		return meterNumber;
 	}
-	public void setMeterNumber(String meterNumber) {
+	public void setMeterNumber(int meterNumber) {
 		this.meterNumber = meterNumber;
 	}
 	public String getConnectionType() {
