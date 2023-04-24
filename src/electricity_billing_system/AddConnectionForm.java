@@ -116,6 +116,7 @@ public class AddConnectionForm extends JDialog {
 						int customerId = customers.get(comboBoxCustomers.getSelectedIndex()).getId();
 						
 						
+						
 					}
 				});
 				okButton.setActionCommand("OK");
