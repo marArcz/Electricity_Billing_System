@@ -53,7 +53,7 @@ public class Main {
 	JPanel panelHeader;
 	private JTable table_1;
 	ArrayList<Customer> customers;
-
+	DbHelper dbHelper;
 	/**
 	 * Launch the application.
 	 */
@@ -75,20 +75,25 @@ public class Main {
 	 */
 	public Main() {
 		initialize();
-		initData();
+		loadCustomers();
 	}
 
 	/**
 	 * Initialize the contents of the frame.
 	 */
 	
-	private void initData() {
-		DbHelper dbHelper = new DbHelper();
+	private void loadCustomers() {
+		dbHelper = new DbHelper();
 		dbHelper.connect();
 		this.customers = dbHelper.getCustomers();
 		
 		loadCustomersTable();
 	}
+	
+	private void loadConnections() {
+		
+	}
+	
 	
 	private void loadCustomersTable() {
 		String[] columns = {"id","firstname","lastname","phone","address"};
@@ -151,8 +156,13 @@ public class Main {
 		JButton btnUpdateCustomer = new JButton("Update");
 		btnUpdateCustomer.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				AddConnectionForm updateCustomer = new AddConnectionForm();
+				int row = tableCustomers.getSelectedRow();
+				int id = (int) tableCustomers.getModel().getValueAt(row, 0);
+				UpdateCustomerForm updateCustomer = new UpdateCustomerForm(id);
+				updateCustomer.setModal(true);
 				updateCustomer.setVisible(true);
+				
+				loadCustomers();
 			}
 		});
 		btnUpdateCustomer.setEnabled(false);
@@ -165,7 +175,7 @@ public class Main {
 				AddCustomerForm addCustomer = new AddCustomerForm();
 				addCustomer.setModal(true);
 				addCustomer.setVisible(true);
-				
+				loadCustomers();
 			}
 		});
 		btnAddCustomer.setForeground(Color.WHITE);

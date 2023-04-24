@@ -48,7 +48,7 @@ public class AddCustomerForm extends JDialog {
 	 * Create the dialog.
 	 */
 	public AddCustomerForm() {
-		setBounds(100, 100, 743, 509);
+		setBounds(100, 100, 743, 481);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(null);
 		getContentPane().add(contentPanel, BorderLayout.EAST);
