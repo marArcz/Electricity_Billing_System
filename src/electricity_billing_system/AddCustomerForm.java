@@ -51,7 +51,7 @@ public class AddCustomerForm extends JDialog {
 		setBounds(100, 100, 743, 509);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(null);
-		getContentPane().add(contentPanel, BorderLayout.CENTER);
+		getContentPane().add(contentPanel, BorderLayout.EAST);
 
 		JPanel panel = new JPanel();
 		panel.setBackground(new Color(69, 69, 69));

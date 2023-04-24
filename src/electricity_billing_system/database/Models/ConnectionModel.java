@@ -9,6 +9,7 @@ public class ConnectionModel {
 	private String connectionType;
 	private Date connectionDate;
 	private int status;
+	private Customer customer;
 	
 	
 	public int getId() {
@@ -46,6 +47,12 @@ public class ConnectionModel {
 	}
 	public void setStatus(int status) {
 		this.status = status;
+	}
+	public Customer getCustomer() {
+		return customer;
+	}
+	public void setCustomer(Customer customer) {
+		this.customer = customer;
 	}
 	
 	
