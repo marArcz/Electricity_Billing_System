@@ -227,6 +227,11 @@ public class AddConnectionForm extends JDialog {
 			}
 			{
 				JButton cancelButton = new JButton("Cancel");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						setVisible(false);
+					}
+				});
 				cancelButton.setBackground(new Color(255, 255, 255));
 				cancelButton.setActionCommand("Cancel");
 				buttonPane.add(cancelButton);

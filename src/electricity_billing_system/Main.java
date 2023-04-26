@@ -130,6 +130,9 @@ public class Main {
 		this.customers = dbHelper.getCustomers();
 		
 		loadCustomersTable();
+		loadConnections();
+		loadBills();
+		loadTransactions();
 	}
 	
 	private void loadConnections() {

@@ -171,6 +171,11 @@ public class AddCustomerForm extends JDialog {
 			}
 			{
 				JButton cancelButton = new JButton("Cancel");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						setVisible(false);
+					}
+				});
 				cancelButton.setBackground(new Color(209, 209, 209));
 				cancelButton.setActionCommand("Cancel");
 				buttonPane.add(cancelButton);
