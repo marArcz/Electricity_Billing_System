@@ -11,6 +11,8 @@ public class ConnectionModel {
 	private int status;
 	private Customer customer;
 	
+	public static final int ACTIVE = 0;
+	public static final int DEACTIVATED = 1;
 	
 	public int getId() {
 		return id;

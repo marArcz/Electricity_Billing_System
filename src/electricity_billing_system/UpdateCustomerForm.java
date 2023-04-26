@@ -33,6 +33,8 @@ public class UpdateCustomerForm extends JDialog {
 	private DbHelper dbHelper;
 
 	public UpdateCustomerForm(int customerId) {
+		setModal(true);
+		setResizable(false);
 		dbHelper = new DbHelper();
 		dbHelper.connect();
 		this.customerId = customerId;
@@ -139,6 +141,7 @@ public class UpdateCustomerForm extends JDialog {
 			getContentPane().add(buttonPane, BorderLayout.SOUTH);
 			{
 				JButton okButton = new JButton("Save");
+				okButton.setBackground(Color.WHITE);
 				okButton.addActionListener(new ActionListener() {
 					public void actionPerformed(ActionEvent e) {
 						customer.setFirstname(textFieldFirstname.getText());
@@ -159,6 +162,7 @@ public class UpdateCustomerForm extends JDialog {
 			}
 			{
 				JButton cancelButton = new JButton("Cancel");
+				cancelButton.setBackground(Color.WHITE);
 				cancelButton.setActionCommand("Cancel");
 				buttonPane.add(cancelButton);
 			}

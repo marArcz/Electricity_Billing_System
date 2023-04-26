@@ -17,6 +17,8 @@ import java.awt.GridLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+
 import java.awt.Insets;
 import javax.swing.SwingConstants;
 import java.awt.Font;
@@ -28,7 +30,10 @@ import javax.swing.table.TableModel;
 
 
 import electricity_billing_system.database.DbHelper;
+import electricity_billing_system.database.Models.Bill;
+import electricity_billing_system.database.Models.ConnectionModel;
 import electricity_billing_system.database.Models.Customer;
+import electricity_billing_system.database.Models.TransactionModel;
 
 import javax.swing.ListSelectionModel;
 import javax.swing.JScrollPane;
@@ -41,6 +46,8 @@ import java.awt.event.ActionEvent;
 import java.awt.Cursor;
 import javax.swing.ImageIcon;
 import java.beans.PropertyChangeListener;
+import java.sql.Date;
+import java.time.LocalDate;
 import java.beans.PropertyChangeEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -51,9 +58,13 @@ public class Main {
 	private JTable tableCustomers;
 	JPanel panelCard;
 	JPanel panelHeader;
-	private JTable table_1;
+	private JTable tbConnection;
 	ArrayList<Customer> customers;
+	ArrayList<Bill> bills;
 	DbHelper dbHelper;
+	DefaultTableModel tbConnectionModel;
+	private JTable tbBills;
+	private JTable tbTransactions;
 	/**
 	 * Launch the application.
 	 */
@@ -74,29 +85,81 @@ public class Main {
 	 * Create the application.
 	 */
 	public Main() {
-		initialize();
-		loadCustomers();
-	}
-
-	/**
-	 * Initialize the contents of the frame.
-	 */
-	
-	private void loadCustomers() {
 		dbHelper = new DbHelper();
 		dbHelper.connect();
+		
+		initialize();
+		loadCustomers();
+		loadConnections();
+		loadBills();
+		loadTransactions();
+		
+	}
+
+	
+	private void loadTransactions() {
+		ArrayList<TransactionModel> transactions= dbHelper.getTransactionModels();
+		
+		String[] columns = {"Id", "Customer", "Bill No", "Bill Amount","Payment Amount", "Date"};
+		DefaultTableModel tableModel  = new DefaultTableModel(columns,0);
+		
+		tableModel.setRowCount(0);
+		transactions.forEach(t ->{
+			Customer customer = t.getBill().getConnectionModel().getCustomer();
+			Date date = t.getCreatedAt();
+			LocalDate d = t.getCreatedAt().toLocalDate();
+			tableModel.addRow(
+					new Object[] {
+							t.getId(),
+							customer.getFirstname() + " " + customer.getLastname(),
+							t.getBill().getBillNo(),
+							"P "+t.getBill().getAmount(),
+							"P "+t.getAmount(),
+							String.format("%s-%s-%s", d.getMonthValue(),d.getDayOfMonth(),d.getYear())
+					}
+		    );
+		});
+		
+		tbTransactions.setModel(tableModel);
+		tbTransactions.getColumnModel().getColumn(0).setMinWidth(0);
+		tbTransactions.getColumnModel().getColumn(0).setMaxWidth(0);
+	}
+	
+	private void loadCustomers() {
+		
 		this.customers = dbHelper.getCustomers();
 		
 		loadCustomersTable();
 	}
 	
 	private void loadConnections() {
+		ArrayList<ConnectionModel> connectionModels = dbHelper.getConnections();
 		
+		String[] columns = {"ID", "Meter number", "Customer", "Connection Date", "Status"};
+		tbConnectionModel = new DefaultTableModel(columns,0);
+		
+		tbConnectionModel.setRowCount(0);
+		connectionModels.forEach(c -> {
+			LocalDate date = c.getConnectionDate().toLocalDate();
+			tbConnectionModel.addRow(
+					new Object[] {
+							c.getId(),
+							c.getMeterNumber()+"",
+							c.getCustomer().getFirstname() + " " + c.getCustomer().getLastname(),
+							date.getMonthValue() + "-" + date.getDayOfMonth() + "-" + date.getYear(),
+							c.getStatus() == ConnectionModel.ACTIVE ? "Active":"Deactivated"
+					}
+		    );
+		});
+		
+		tbConnection.setModel(tbConnectionModel);
+		tbConnection.getColumnModel().getColumn(0).setMinWidth(0);
+		tbConnection.getColumnModel().getColumn(0).setMaxWidth(0);
 	}
 	
-	
+//	region Load Customers
 	private void loadCustomersTable() {
-		String[] columns = {"id","firstname","lastname","phone","address"};
+		String[] columns = {"id","Firstname","Lastname","Phone","Address"};
 		DefaultTableModel tbModel = new DefaultTableModel(columns,0);
 		tbModel.setRowCount(0);
 		customers.forEach(c -> {
@@ -110,6 +173,32 @@ public class Main {
 		});
 		
 		tableCustomers.setModel(tbModel);
+		tableCustomers.getColumnModel().getColumn(0).setMinWidth(0);
+		tableCustomers.getColumnModel().getColumn(0).setMaxWidth(0);
+	}
+	
+	private void loadBills() {
+		bills = dbHelper.getBills();
+		
+		String[] columns = {"ID","Bill No","Meter Number","Customer","Units","Rate","Amount"};
+		DefaultTableModel tbModel = new DefaultTableModel(columns,0);
+		tbModel.setRowCount(0);
+		bills.forEach(b -> {
+			tbModel.addRow(new Object[] {
+				b.getId(),
+				b.getBillNo(),
+				b.getConnectionModel().getMeterNumber(),
+				b.getConnectionModel().getCustomer().getFirstname() + " " + b.getConnectionModel().getCustomer().getLastname(),
+				b.getUnits(),
+				b.getRate(),
+				b.getAmount()
+			});
+		});
+		
+		tbBills.setModel(tbModel);
+		
+		tbBills.getColumnModel().getColumn(0).setMinWidth(0);
+		tbBills.getColumnModel().getColumn(0).setMaxWidth(0);
 	}
 	
 	private void initialize() {
@@ -182,9 +271,29 @@ public class Main {
 		btnAddCustomer.setBackground(new Color(255, 165, 89));
 
 		JButton btnDeleteCustomer = new JButton("Delete");
+		btnDeleteCustomer.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(tableCustomers.getSelectedRowCount() > 0) {
+					
+					int option = JOptionPane.showConfirmDialog(null, "Are you sure to delete selected row(s)?","",JOptionPane.YES_NO_OPTION);
+					
+					if(option == JOptionPane.YES_OPTION) {
+						int selectedRows[] = tableCustomers.getSelectedRows();
+						
+						
+						for(int row : selectedRows) {
+							int id = (int) tableCustomers.getModel().getValueAt(row, 0);
+							dbHelper.DeleteCustomer(id);
+						}
+						
+						loadCustomers();	
+					}
+				}
+			}
+		});
 		btnDeleteCustomer.setEnabled(false);
 		btnDeleteCustomer.setForeground(Color.WHITE);
-		btnDeleteCustomer.setBackground(new Color(62, 62, 62));
+		btnDeleteCustomer.setBackground(new Color(62, 62, 62));	
 		GroupLayout gl_panelCustomers = new GroupLayout(panelCustomers);
 		gl_panelCustomers.setHorizontalGroup(
 			gl_panelCustomers.createParallelGroup(Alignment.LEADING)
@@ -234,14 +343,55 @@ public class Main {
 		JScrollPane scrollPane_1 = new JScrollPane();
 
 		JButton btnNewButton_1_1 = new JButton("Add New");
+		btnNewButton_1_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				AddConnectionForm addConnectionForm = new AddConnectionForm();
+				addConnectionForm.setModal(true);
+				addConnectionForm.setVisible(true);
+				loadConnections();
+			}
+		});
 		btnNewButton_1_1.setForeground(Color.WHITE);
 		btnNewButton_1_1.setBackground(new Color(255, 165, 89));
 
 		JButton btnUpdate_1 = new JButton("Update");
+		btnUpdate_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(tbConnection.getSelectedRowCount() > 0) {
+					int row = tbConnection.getSelectedRow();
+					
+					int id = (int) tbConnection.getModel().getValueAt(row, 0);
+					
+					UpdateConnectionForm updateConnectionForm = new UpdateConnectionForm(id);
+					updateConnectionForm.setModal(true);
+					updateConnectionForm.setVisible(true);
+					
+					loadConnections();
+				}
+			}
+		});
 		btnUpdate_1.setForeground(Color.WHITE);
 		btnUpdate_1.setBackground(new Color(116, 116, 116));
 
 		JButton btnDelete_1 = new JButton("Delete");
+		btnDelete_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(tbConnection.getSelectedRowCount() > 0) {
+					int option = JOptionPane.showConfirmDialog(null, "Are you sure to delete selected rows?","",JOptionPane.YES_NO_OPTION);
+					
+					if(option == JOptionPane.YES_OPTION) {
+						int rows[] = tbConnection.getSelectedRows();
+						
+						for(int row : rows) {
+							int id = (int) tbConnection.getModel().getValueAt(row, 0);
+							dbHelper.DeleteConnection(id);
+						}
+						
+						loadConnections();
+					}
+				}
+			}
+		});
 		btnDelete_1.setForeground(Color.WHITE);
 		btnDelete_1.setBackground(new Color(62, 62, 62));
 		GroupLayout gl_panelConnections = new GroupLayout(panelConnections);
@@ -268,11 +418,199 @@ public class Main {
 						.addPreferredGap(ComponentPlacement.RELATED)
 						.addComponent(scrollPane_1, GroupLayout.DEFAULT_SIZE, 380, Short.MAX_VALUE).addContainerGap()));
 
-		table_1 = new JTable();
-		table_1.setModel(new DefaultTableModel(new Object[][] {},
-				new String[] { "ID", "Customer", "Connection Type", "Connection Date", "Status" }));
-		scrollPane_1.setViewportView(table_1);
+		tbConnection = new JTable();
+		tbConnection.setModel(new DefaultTableModel(new Object[][] {},
+				new String[] { "ID", "Customer", "Connection Date", "Status" }));
+		
+		
+		scrollPane_1.setViewportView(tbConnection);
 		panelConnections.setLayout(gl_panelConnections);
+		
+		JPanel panelBilling = new JPanel();
+		panelBilling.setBackground(Color.WHITE);
+		panelCard.add(panelBilling, "billing_panel");
+		
+		JScrollPane scrollPane_1_1 = new JScrollPane();
+		
+		JButton btnNewButton_1_1_2 = new JButton("Add New");
+		btnNewButton_1_1_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				AddBillForm addBillForm = new AddBillForm();
+				addBillForm.setModal(true);
+				addBillForm.setVisible(true);
+				
+				loadBills();
+			}
+		});
+		btnNewButton_1_1_2.setForeground(Color.WHITE);
+		btnNewButton_1_1_2.setBackground(new Color(255, 165, 89));
+		
+		JButton btnUpdate_1_2 = new JButton("Update");
+		btnUpdate_1_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(tbBills.getSelectedRowCount() > 0) {
+					int row = tbBills.getSelectedRow();
+					
+					int id = (int) tbBills.getModel().getValueAt(row, 0);
+					
+					UpdateBillForm updateBillForm = new UpdateBillForm(id);
+					updateBillForm.setModal(true);
+					
+					updateBillForm.setVisible(true);
+					
+					loadBills();
+				}
+			}
+		});
+		btnUpdate_1_2.setForeground(Color.WHITE);
+		btnUpdate_1_2.setBackground(new Color(116, 116, 116));
+		
+		JButton btnDelete_1_1 = new JButton("Delete");
+		btnDelete_1_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				if(tbBills.getSelectedRowCount() > 0) {
+					int option = JOptionPane.showConfirmDialog(null, "Are you sure to delete selected rows?","",JOptionPane.YES_NO_OPTION);
+					
+					if(option == JOptionPane.YES_OPTION) {
+						int rows[] = tbBills.getSelectedRows();
+						
+						for(int row : rows) {
+							int id = (int) tbBills.getModel().getValueAt(row, 0);
+							dbHelper.DeleteBill(id);
+						}
+						
+						loadBills();
+					}
+				}
+							
+			}
+		});
+		btnDelete_1_1.setForeground(Color.WHITE);
+		btnDelete_1_1.setBackground(new Color(62, 62, 62));
+		GroupLayout gl_panelBilling = new GroupLayout(panelBilling);
+		gl_panelBilling.setHorizontalGroup(
+			gl_panelBilling.createParallelGroup(Alignment.TRAILING)
+				.addGap(0, 928, Short.MAX_VALUE)
+				.addGroup(gl_panelBilling.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(gl_panelBilling.createParallelGroup(Alignment.TRAILING)
+						.addComponent(scrollPane_1_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 904, Short.MAX_VALUE)
+						.addGroup(gl_panelBilling.createSequentialGroup()
+							.addComponent(btnNewButton_1_1_2, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(btnUpdate_1_2, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)
+							.addGap(12)
+							.addComponent(btnDelete_1_1, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
+		);
+		gl_panelBilling.setVerticalGroup(
+			gl_panelBilling.createParallelGroup(Alignment.TRAILING)
+				.addGap(0, 451, Short.MAX_VALUE)
+				.addGroup(gl_panelBilling.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(gl_panelBilling.createParallelGroup(Alignment.LEADING)
+						.addComponent(btnNewButton_1_1_2, GroupLayout.PREFERRED_SIZE, 37, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnUpdate_1_2, GroupLayout.PREFERRED_SIZE, 37, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnDelete_1_1, GroupLayout.PREFERRED_SIZE, 37, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(scrollPane_1_1, GroupLayout.DEFAULT_SIZE, 384, Short.MAX_VALUE)
+					.addContainerGap())
+		);
+		
+		tbBills = new JTable();
+		tbBills.setModel(new DefaultTableModel(
+			new Object[][] {
+			},
+			new String[] {
+				"Amount", "Units", "Meter Number", "Customer", "id"
+			}
+		) {
+			boolean[] columnEditables = new boolean[] {
+				true, true, false, false, true
+			};
+			public boolean isCellEditable(int row, int column) {
+				return columnEditables[column];
+			}
+		});
+		scrollPane_1_1.setViewportView(tbBills);
+		panelBilling.setLayout(gl_panelBilling);
+		
+		JPanel panelTransactions = new JPanel();
+		panelTransactions.setBackground(Color.WHITE);
+		panelCard.add(panelTransactions, "transactions_panel");
+		
+		JScrollPane scrollPane_1_1_1 = new JScrollPane();
+		
+		JButton btnNewButton_1_1_2_1 = new JButton("Add New");
+		btnNewButton_1_1_2_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				AddTransaction addTransaction = new AddTransaction();
+				addTransaction.setVisible(true);
+				loadTransactions();
+			}
+		});
+		btnNewButton_1_1_2_1.setForeground(Color.WHITE);
+		btnNewButton_1_1_2_1.setBackground(new Color(255, 165, 89));
+		
+		JButton btnDelete_1_1_1 = new JButton("Delete");
+		btnDelete_1_1_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+
+				if(tbTransactions.getSelectedRowCount() > 0) {
+					int option = JOptionPane.showConfirmDialog(null, "Are you sure to delete selected rows?","",JOptionPane.YES_NO_OPTION);
+					
+					if(option == JOptionPane.YES_OPTION) {
+						int rows[] = tbTransactions.getSelectedRows();
+						
+						for(int row : rows) {
+							int id = (int) tbTransactions.getModel().getValueAt(row, 0);
+							dbHelper.deleteTransaction(id);
+						}
+						
+						loadTransactions();
+					}
+				}
+						
+			}
+		});
+		btnDelete_1_1_1.setForeground(Color.WHITE);
+		btnDelete_1_1_1.setBackground(new Color(62, 62, 62));
+		GroupLayout gl_panelTransactions = new GroupLayout(panelTransactions);
+		gl_panelTransactions.setHorizontalGroup(
+			gl_panelTransactions.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panelTransactions.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(gl_panelTransactions.createParallelGroup(Alignment.TRAILING)
+						.addComponent(scrollPane_1_1_1, Alignment.LEADING, GroupLayout.DEFAULT_SIZE, 904, Short.MAX_VALUE)
+						.addGroup(gl_panelTransactions.createSequentialGroup()
+							.addComponent(btnNewButton_1_1_2_1, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)
+							.addGap(18)
+							.addComponent(btnDelete_1_1_1, GroupLayout.PREFERRED_SIZE, 146, GroupLayout.PREFERRED_SIZE)))
+					.addContainerGap())
+		);
+		gl_panelTransactions.setVerticalGroup(
+			gl_panelTransactions.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_panelTransactions.createSequentialGroup()
+					.addContainerGap()
+					.addGroup(gl_panelTransactions.createParallelGroup(Alignment.BASELINE)
+						.addComponent(btnDelete_1_1_1, GroupLayout.PREFERRED_SIZE, 37, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnNewButton_1_1_2_1, GroupLayout.PREFERRED_SIZE, 37, GroupLayout.PREFERRED_SIZE))
+					.addPreferredGap(ComponentPlacement.RELATED)
+					.addComponent(scrollPane_1_1_1, GroupLayout.DEFAULT_SIZE, 384, Short.MAX_VALUE)
+					.addContainerGap())
+		);
+		
+		tbTransactions = new JTable();
+		tbTransactions.setModel(new DefaultTableModel(
+			new Object[][] {
+			},
+			new String[] {
+				"Payment Amount", "Id", "Customer", "Bill No", "Amount", "Date"
+			}
+		));
+		scrollPane_1_1_1.setViewportView(tbTransactions);
+		panelTransactions.setLayout(gl_panelTransactions);
 
 		JPanel panel_1 = new JPanel();
 		panel_1.setBackground(new Color(62, 62, 62));
@@ -299,7 +637,7 @@ public class Main {
 		btnConnections.setBorder(null);
 		btnConnections.setBackground(new Color(255, 96, 0));
 
-		JButton btnBilling = new JButton("BILLING");
+		JButton btnBilling = new JButton("BILLS");
 		btnBilling.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 		btnBilling.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -310,15 +648,15 @@ public class Main {
 		btnBilling.setBorder(null);
 		btnBilling.setBackground(new Color(255, 96, 0));
 
-		JButton btnReadings = new JButton("READINGS");
-		btnReadings.addActionListener(new ActionListener() {
+		JButton btnTransactions = new JButton("TRANSACTIONS");
+		btnTransactions.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				ChangeTab((JButton) e.getSource());
 			}
 		});
-		btnReadings.setForeground(Color.WHITE);
-		btnReadings.setBorder(null);
-		btnReadings.setBackground(new Color(255, 96, 0));
+		btnTransactions.setForeground(Color.WHITE);
+		btnTransactions.setBorder(null);
+		btnTransactions.setBackground(new Color(255, 96, 0));
 		GroupLayout gl_panelHeader = new GroupLayout(panelHeader);
 		gl_panelHeader.setHorizontalGroup(
 			gl_panelHeader.createParallelGroup(Alignment.LEADING)
@@ -329,7 +667,7 @@ public class Main {
 					.addPreferredGap(ComponentPlacement.UNRELATED)
 					.addComponent(btnBilling, GroupLayout.PREFERRED_SIZE, 121, GroupLayout.PREFERRED_SIZE)
 					.addPreferredGap(ComponentPlacement.UNRELATED)
-					.addComponent(btnReadings, GroupLayout.PREFERRED_SIZE, 121, GroupLayout.PREFERRED_SIZE)
+					.addComponent(btnTransactions, GroupLayout.PREFERRED_SIZE, 121, GroupLayout.PREFERRED_SIZE)
 					.addContainerGap(434, Short.MAX_VALUE))
 				.addComponent(panel_1, GroupLayout.PREFERRED_SIZE, 925, Short.MAX_VALUE)
 		);
@@ -342,7 +680,7 @@ public class Main {
 						.addComponent(btnCustomers, GroupLayout.PREFERRED_SIZE, 35, GroupLayout.PREFERRED_SIZE)
 						.addComponent(btnBilling, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)
 						.addComponent(btnConnections, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)
-						.addComponent(btnReadings, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)))
+						.addComponent(btnTransactions, GroupLayout.PREFERRED_SIZE, 36, GroupLayout.PREFERRED_SIZE)))
 		);
 
 		JLabel lblNewLabel = new JLabel("Electricity Billing System");
@@ -396,6 +734,12 @@ public class Main {
 			break;
 		case "connections":
 			cl.show(panelCard, "connections_panel");
+			break;
+		case "bills":
+			cl.show(panelCard, "billing_panel");
+			break;
+		case "transactions":
+			cl.show(panelCard, "transactions_panel");
 			break;
 		}
 	}

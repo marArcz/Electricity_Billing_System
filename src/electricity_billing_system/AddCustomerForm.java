@@ -48,6 +48,8 @@ public class AddCustomerForm extends JDialog {
 	 * Create the dialog.
 	 */
 	public AddCustomerForm() {
+		setModal(true);
+		setResizable(false);
 		setBounds(100, 100, 743, 481);
 		getContentPane().setLayout(new BorderLayout());
 		contentPanel.setBorder(null);
@@ -158,6 +160,7 @@ public class AddCustomerForm extends JDialog {
 						if(dbHelper.AddCustomer(newCustomer)) {
 							MessageDialog.ShowPlainMessage("Successfully added!");
 						}
+						setVisible(false);
 					}
 				});
 				okButton.setForeground(new Color(255, 255, 255));
